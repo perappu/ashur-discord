@@ -18,10 +18,9 @@ token = settings.get('Connection', 'Token')
 
 class AshurBot(discord.Client):
 
-    def __init__(self):
-        self.ownerID = settings.get('Owner', 'ID')
-        self.ownerName = settings.get('Owner', 'Name')
-        self.prefix = settings.get('Options', 'Prefix')
+    ownerID = settings.get('Owner', 'ID')
+    ownerName = settings.get('Owner', 'Name')
+    prefix = settings.get('Options', 'Prefix')
 
     #various commands below that need docstrings...
     async def c_ping(self, message, params):
