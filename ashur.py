@@ -31,24 +31,51 @@ class AshurBot(discord.Client):
     # various commands below that need docstrings...
 
     # gw2 related
-    async def c_forgeprofit(self, message, params):
-        r = requests.get("http://www.gw2shinies.com/alchemy.php?display=All&saviewcolumn=Buy&sellchoice=Sell&viewtype=All&includegifts=Yes")
-        data = BeautifulSoup(r.text, "html.parser")
+    async def c_gw2daily(self, message, params):
+        if "tomorrow" in params:
+            r = requests.get("https://api.guildwars2.com/v2/achievements/daily/tomorrow")
+        if params.strip() == "":
+            await self.send_message(message.channel, "Please specify PvE, PvP, WvW, Fractal, or Event achievements. (You can also add \"tomorrow\" to get tomorrow's dailies.)")
+            return
+        else:
+            r = requests.get("https://api.guildwars2.com/v2/achievements/daily")
+        dailies = r.json()
         
-        #grab itemtable
-        table = data.find("table", {"class": "itemsTable"})
-        items = table.td
-        print(items)
+        category = params.split(" ")[0]
+        cheevList = ""
         
-        #look for our item
-        if params == "":
-            await self.send_message(message.channel, "Please enter an item to search for.")
-        elif params in items:
-            await self.send_message(message.channel, "Found " + params + ".")
-        else: 
-            await self.send_message(message.channel, "Couldn't find " + params + ". Did you enter the exact name?")
+        if category == "pve":
+            list = dailies["pve"]
+        elif category == "pvp":
+            list = dailies["pvp"]
+        elif category == "wvw":
+            list = dailies["wvw"]
+        elif "fractal" in category:
+            list = dailies["fractals"]
+        elif "event" or "special" in category:
+            list = dailies["special"]
         
-        #spit out the information
+        if not list:
+            await self.send_message(message.channel, "Sorry, looks like there isn't any dailies in that category today.")
+            return
+        else:
+            for cheev in list:
+                if cheev["level"]["max"] == 80:
+                    cheevList += str(cheev["id"]) + ","
+                    
+        r = requests.get("https://api.guildwars2.com/v2/achievements?ids=" + cheevList)
+        cheevs = r.json()
+        
+        msg = "\n\n"
+        
+        for cheev in cheevs:
+            msg += "```markdown\n# " + cheev["name"] + " #"
+            if cheev["description"]:
+                msg += "\n> " + cheev["description"] + ""
+            msg += "\n" + cheev["requirement"]
+            msg += "```"
+        
+        await self.send_message(message.channel, msg)     
      
     async def c_kinkshame(self, message, params):
         
@@ -60,8 +87,15 @@ class AshurBot(discord.Client):
         else: 
             msg = target
         
-        await self.send_file(message.channel, os.path.dirname(os.path.abspath(__file__)) + "\\kinkshame\\" + fname, filename=fname, content=msg)
+        await self.send_file(message.channel, os.path.dirname(os.path.abspath(__file__)) + "\\corbin\\" + fname, filename=fname, content=msg)
      
+    async def c_corbin(self, message, params):
+    
+        fname = random.choice(os.listdir(os.path.dirname(os.path.abspath(__file__)) + "\\corbin\\"))
+        
+        await self.send_file(message.channel, os.path.dirname(os.path.abspath(__file__)) + "\\corbin\\" + fname, filename=fname)
+        await self.send_message(message.channel, "<:corbin:315013269540700161>")
+    
     # japanese dictionary
     async def c_jisho(self, message, params):
         if params == "":
@@ -157,8 +191,10 @@ class AshurBot(discord.Client):
             params = ""
         
         # Make this dynamic at some point
-        if message.content.startswith(self.prefix + 'forgeprofit'):
-            await self.c_forgeprofit(message, params)
+        if message.content.startswith(self.prefix + 'gw2daily'):
+            await self.c_gw2daily(message, params)
+        if message.content.startswith(self.prefix + 'corbin'):
+            await self.c_corbin(message, params)
         if message.content.startswith(self.prefix + 'jisho'):
             await self.c_jisho(message, params)
         if message.content.startswith(self.prefix + 'kinkshame'):
