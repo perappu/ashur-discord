@@ -27,14 +27,40 @@ class AshurBot(discord.Client):
     ownerID = settings.get('Owner', 'ID')
     ownerName = settings.get('Owner', 'Name')
     prefix = settings.get('Options', 'Prefix')
+    commands = []
 
     # various commands below that need docstrings...
+    
+    # Overwriting event methods
+    async def on_ready(self):
+        print('Logged in successfully.')
+        print(self.user.name)
+        print(self.user.id)
+        
+        for func in dir(self):
+            if func.startswith('c_'):
+                self.commands.append(func.replace("c_", ""))
+        
+        print("Loaded commands: " + str(self.commands))
+        print('------')
+    
+    async def on_message(self, message):
+        params = message.content.split(" ", 1)
+        command = message.content.split(" ", 1)[0].strip(self.prefix)
+        if len(params) > 1:
+            params = params[1]
+        else: 
+            params = ""
+            
+        if (message.content.startswith(self.prefix)) & (command in self.commands):
+            functionName = "c_" + command
+            commandCalled = getattr(self, functionName)
+            await commandCalled(message, params)
 
-    # gw2 related
     async def c_gw2daily(self, message, params):
         if "tomorrow" in params:
             r = requests.get("https://api.guildwars2.com/v2/achievements/daily/tomorrow")
-        if params.strip() == "":
+        elif params.strip() == "":
             await self.send_message(message.channel, "Please specify PvE, PvP, WvW, Fractal, or Event achievements. (You can also add \"tomorrow\" to get tomorrow's dailies.)")
             return
         else:
@@ -175,38 +201,6 @@ class AshurBot(discord.Client):
             quit()
         else:
             await self.send_message(message.channel, "Sorry, only my owner(" + ownerName + ") can do that. Please @ them if I need to be exited.")
-    
-    # Overwriting event methods
-    async def on_ready(self):
-        print('Logged in successfully.')
-        print(self.user.name)
-        print(self.user.id)
-        print('------')
-    
-    async def on_message(self, message):
-        params = message.content.split(" ", 1)
-        if len(params) > 1:
-            params = params[1]
-        else: 
-            params = ""
-        
-        # Make this dynamic at some point
-        if message.content.startswith(self.prefix + 'gw2daily'):
-            await self.c_gw2daily(message, params)
-        if message.content.startswith(self.prefix + 'corbin'):
-            await self.c_corbin(message, params)
-        if message.content.startswith(self.prefix + 'jisho'):
-            await self.c_jisho(message, params)
-        if message.content.startswith(self.prefix + 'kinkshame'):
-            await self.c_kinkshame(message, params)
-        if message.content.startswith(self.prefix + 'hello'):
-            await self.c_hello(message, params)
-        if message.content.startswith(self.prefix + 'help'):
-            await self.c_help(message, params)
-        if message.content.startswith(self.prefix + 'exit'):
-            await self.c_exit(message, params)
-        if message.content.startswith(self.prefix + 'restart'):
-            await self.c_restart(message, params)
 
 if __name__ == "__main__":
     ashur = AshurBot()
