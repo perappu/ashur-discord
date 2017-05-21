@@ -105,7 +105,7 @@ class AshurBot(discord.Client):
      
     async def c_kinkshame(self, message, params):
         
-        fname = random.choice(os.listdir(os.path.dirname(os.path.abspath(__file__)) + "\\kinkshame\\"))
+        fname = random.choice(os.listdir(os.path.dirname(os.path.abspath(__file__)) + "//kinkshame//"))
         target = params.split(" ")[0]
         
         if params.split(" ")[0] == "me":
@@ -113,13 +113,13 @@ class AshurBot(discord.Client):
         else: 
             msg = target
         
-        await self.send_file(message.channel, os.path.dirname(os.path.abspath(__file__)) + "\\corbin\\" + fname, filename=fname, content=msg)
+        await self.send_file(message.channel, os.path.dirname(os.path.abspath(__file__)) + "//kinkshame//" + fname, filename=fname, content=msg)
      
     async def c_corbin(self, message, params):
     
-        fname = random.choice(os.listdir(os.path.dirname(os.path.abspath(__file__)) + "\\corbin\\"))
+        fname = random.choice(os.listdir(os.path.dirname(os.path.abspath(__file__)) + "//corbin//"))
         
-        await self.send_file(message.channel, os.path.dirname(os.path.abspath(__file__)) + "\\corbin\\" + fname, filename=fname)
+        await self.send_file(message.channel, os.path.dirname(os.path.abspath(__file__)) + "//corbin//" + fname, filename=fname)
         await self.send_message(message.channel, "<:corbin:315013269540700161>")
     
     # japanese dictionary
