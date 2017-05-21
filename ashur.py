@@ -53,11 +53,12 @@ class AshurBot(discord.Client):
     async def c_kinkshame(self, message, params):
         
         fname = random.choice(os.listdir(os.path.dirname(os.path.abspath(__file__)) + "\\kinkshame\\"))
+        target = params.split(" ")[0]
         
         if params.split(" ")[0] == "me":
-            msg = "@" + message.author.name
+            msg = message.author.mention
         else: 
-            msg = "@" + params.split(" ")[0]
+            msg = target
         
         await self.send_file(message.channel, os.path.dirname(os.path.abspath(__file__)) + "\\kinkshame\\" + fname, filename=fname, content=msg)
      
@@ -123,7 +124,7 @@ class AshurBot(discord.Client):
             if func.startswith('c_') and func != 'c_help':
                 text += func.replace("c_", self.prefix) + "\n"
         
-        text += "```"
+        text += "``` \nRepo: https://github.com/stokori/ashur-discord"
         
         await self.send_message(message.channel, text)
         
