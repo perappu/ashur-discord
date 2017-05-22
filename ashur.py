@@ -63,7 +63,7 @@ class AshurBot(discord.Client):
         name2 = ["Mac", "Mc", ""]
         name3 = ["Butt", "Steak", "Hard", "Rock", "Large", "Huge", "Beef", "Thrust", "Big", "Bigger", "Meat", "Hard", "Fight", "Fizzle", "Run", "Fast", "Drink", "Lots",        "Slam", "Chest", "Groin", "Bone", "Meal", "Thorn", "Body", "Squat"]
         
-        await self.send_message(message.channel, random.choice(name1) + " " random.choice(name2) + random.choice(name3) + str.lower(random.choice(name3)))
+        await self.send_message(message.channel, random.choice(name1) + " " + random.choice(name2) + random.choice(name3) + str.lower(random.choice(name3)))
             
     async def c_gw2daily(self, message, params):
         if "tomorrow" in params:
