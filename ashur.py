@@ -57,6 +57,14 @@ class AshurBot(discord.Client):
             commandCalled = getattr(self, functionName)
             await commandCalled(message, params)
 
+    async def c_norn(self, message, params):
+    
+        name1 = ["Crunch", "Olaf", "Beef", "Chunk", "Smoke", "Brick", "Crash", "Thick", "Bold", "Buff", "Drunk", "Punch", "Crud", "Grizzle", "Slab", "Hack", "Big"]
+        name2 = ["Mac", "Mc", ""]
+        name3 = ["Butt", "Steak", "Hard", "Rock", "Large", "Huge", "Beef", "Thrust", "Big", "Bigger", "Meat", "Hard", "Fight", "Fizzle", "Run", "Fast", "Drink", "Lots",        "Slam", "Chest", "Groin", "Bone", "Meal", "Thorn", "Body", "Squat"]
+        
+        await self.send_message(message.channel, random.choice(name1) + " " random.choice(name2) + random.choice(name3) + str.lower(random.choice(name3)))
+            
     async def c_gw2daily(self, message, params):
         if "tomorrow" in params:
             r = requests.get("https://api.guildwars2.com/v2/achievements/daily/tomorrow")
