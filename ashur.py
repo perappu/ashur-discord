@@ -130,6 +130,18 @@ class AshurBot(discord.Client):
         await self.send_file(message.channel, os.path.dirname(os.path.abspath(__file__)) + "//corbin//" + fname, filename=fname)
         await self.send_message(message.channel, "<:corbin:315013269540700161>")
     
+    async def c_gotosleep(self, message, params):
+    
+        target = params.split(" ")[0]
+        
+        if params.split(" ")[0] == "me":
+            msg = message.author.mention
+        else: 
+            msg = target
+    
+        await self.send_file(message.channel, os.path.dirname(os.path.abspath(__file__)) + "sleepobeepo.jpg" + fname, filename=fname, content=msg)
+        
+    
     # japanese dictionary
     async def c_jisho(self, message, params):
         if params == "":
