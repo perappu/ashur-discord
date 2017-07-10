@@ -139,7 +139,7 @@ class AshurBot(discord.Client):
         else: 
             msg = target
     
-        await self.send_file(message.channel, os.path.dirname(os.path.abspath(__file__)) + "\\sleepobeepo.jpg", filename="sleepobeepo.jpg", content=msg)
+        await self.send_file(message.channel, os.path.dirname(os.path.abspath(__file__)) + "//sleepobeepo.jpg", filename="sleepobeepo.jpg", content=msg)
         
     
     # japanese dictionary
