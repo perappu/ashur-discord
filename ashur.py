@@ -5,6 +5,9 @@ import configparser
 import os, sys
 import random
 
+import aiohttp
+from io import BytesIO
+
 import requests
 from bs4 import BeautifulSoup
 
@@ -28,6 +31,7 @@ class AshurBot(discord.Client):
     ownerName = settings.get('Owner', 'Name')
     prefix = settings.get('Options', 'Prefix')
     commands = []
+
 
     # various commands below that need docstrings...
     
@@ -141,6 +145,22 @@ class AshurBot(discord.Client):
     
         await self.send_file(message.channel, os.path.dirname(os.path.abspath(__file__)) + "//sleepobeepo.jpg", filename="sleepobeepo.jpg", content=msg)
         
+    #random colorpalette from the colourlovers api    
+    async def c_colors(self, message, params):
+        if params == "":
+            r = requests.get("http://www.colourlovers.com/api/palettes/random?format=json")
+            palette = r.json()[0]
+            image = palette["imageUrl"]
+            url = palette["url"]
+           
+            async with aiohttp.ClientSession() as session:
+            # note that it is often preferable to create a single session to use multiple times later - see below for this.
+                async with session.get(image) as resp:
+                    buffer = BytesIO(await resp.read())
+
+            await self.send_file(message.channel, fp=buffer, filename="palette.png")
+            await self.send_message(message.channel, "<" + url + ">")
+        
     
     # japanese dictionary
     async def c_jisho(self, message, params):
@@ -221,6 +241,14 @@ class AshurBot(discord.Client):
             quit()
         else:
             await self.send_message(message.channel, "Sorry, only my owner(" + ownerName + ") can do that. Please @ them if I need to be exited.")
+            
+   # async def c_update(self, message, params):
+    #    if (message.author.id == self.ownerID):
+     #       await self.send_message(message.channel, "Updating. Better hope this doesn't crash me or you're gonna have to open up SSH anyways.")
+      #      subprocess.check_call([sys.executable, '-m', 'pip', 'install', '-U','https://github.com/stokori/ashur-discord.git'])
+       #     os.execl(sys.executable, sys.executable, *sys.argv)
+        #else:
+         #   await self.send_message(message.channel, "Sorry, only my owner(" + ownerName + ") can do that. Please @ them if I need to be updated.")
 
 if __name__ == "__main__":
     ashur = AshurBot()
