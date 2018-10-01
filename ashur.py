@@ -1,9 +1,13 @@
+# -*- coding: UTF-8 -*-
+
 import discord
 import asyncio
 import logging
 import configparser
 import os, sys
 import random
+import markoving
+import re
 
 import aiohttp
 from io import BytesIO
@@ -40,6 +44,7 @@ class AshurBot(discord.Client):
         print('Logged in successfully.')
         print(self.user.name)
         print(self.user.id)
+        await self.change_presence(game=discord.Game(name='a!help'))
         
         for func in dir(self):
             if func.startswith('c_'):
@@ -61,11 +66,157 @@ class AshurBot(discord.Client):
             commandCalled = getattr(self, functionName)
             await commandCalled(message, params)
 
+    #find who has logs
+    async def c_logs(self, message, params):
+        names = "I have logs for these people: ```"
+        fileList = [f.replace(".txt","") for f in os.listdir(str(os.getcwd()) + "/logs/") if os.path.isfile(os.path.join(str(os.getcwd()) + "/logs/", f))]
+        
+        for i in fileList:
+            names += message.server.get_member(i).name + "\n"
+            
+        names += "``` Please use `b!clearlogs` if you would like yourself removed."
+        
+        await self.send_message(message.channel, names)
+        
+    
+    #read logs for use in other commands
+    async def c_readlogs(self, message, params):
+            
+        badMessage = ["http","www","a!","b!","p!","<@!","AM]","PM]"]
+            
+        if (message.author.id == self.ownerID):
+        
+            #try:
+                if (params == ""):
+                    userID = str(message.author.id)
+                    username = message.author.name
+                    messageLimit = 1000
+                else:
+                    params = params.split(" ", 2)
+                    userID = params[0].strip()
+                    username = message.server.get_member(userID).name
+                    messageLimit = int(params[1].strip())
+                
+                path = str(os.getcwd())
+                
+                logfile = None
+                
+                try:
+                    logfile = open(path + "/logs/" + userID + ".txt",mode="a",encoding="utf-8")
+                except FileNotFoundError:
+                    logfile = open(path + "/logs/" + userID + ".txt",mode="w+",encoding="utf-8")
+                else:
+                    logfile = open(path + "/logs/" + userID + ".txt",mode="a",encoding="utf-8")
+                
+                async for logmessage in self.logs_from(message.channel, messageLimit):
+                    
+                    if (logmessage.author.id in userID):
+                        if(all(s not in logmessage.content for s in badMessage)):
+                            print(logmessage.content)
+                            logfile.write(logmessage.content.encode('unicode-escape').decode('unicode-escape') + "\n")
+                
+                logfile.close()
+                await self.send_message(message.channel, "Okay, I read the last " + str(messageLimit) + " messages in " + message.channel.mention + " from " + username + ".")
+            #except:
+             #             await self.send_message(message.channel, "Something went wrong. Did you enter the params right?")
+            
+        else:
+            try:
+                userID = str(message.author.id)
+                username = message.author.name
+                
+                path = str(os.getcwd())
+                
+                logfile = None
+                
+                try:
+                    logfile = open(path + "/logs/" + userID + ".txt",mode="a",encoding="utf-8")
+                except FileNotFoundError:
+                    logfile = open(path + "/logs/" + userID + ".txt",mode="w+",encoding="utf-8")
+                else:
+                    logfile = open(path + "/logs/" + userID + ".txt",mode="a",encoding="utf-8")
+                
+                async for logmessage in self.logs_from(message.channel, messageLimit):
+                    
+                    if (logmessage.author.id in userID):
+                        if(all(s not in logmessage.content for s in badMessage)):
+                            print(logmessage.content)
+                            logfile.write(logmessage.content + "\n")
+                
+                logfile.close()
+                await self.send_message(message.channel, "Okay, I read your last 1000 messages in " + message.channel.mention + ". If you want me to read more, please @ " + self.ownerName + ".")
+            except:
+                await self.send_message(message.channel, "Something went wrong. Did you enter the params right?")
+    
+    #clear any saved logs for a user
+    async def c_clearlogs(self, message, params):
+    
+        if (message.author.id == self.ownerID):
+            try:
+                if (params == ""):
+                    userID = str(message.author.id)
+                    username = message.author.name
+                else:
+                    userID = params.replace(" ","")
+                    username = message.server.get_member(userID).name
+            
+                path = str(os.getcwd())
+            
+                try:
+                    os.remove(path + "/logs/" + userID + ".txt")
+                    await self.send_message(message.channel, "Okay, I deleted all stored logs from " + username + ".")
+                except FileNotFoundError:
+                    await self.send_message(message.channel, "There are no logs to delete for " + username + ".")
+            except:
+                await self.send_message(message.channel, "Something went wrong. Did you enter the params right?")
+        else:
+            userID = str(message.author.id)
+            username = message.author.name
+        
+            path = str(os.getcwd())
+        
+            try:
+                os.remove(path + "/logs/" + userID + ".txt")
+                await self.send_message(message.channel, "I cleared your logs for you.")
+            except FileNotFoundError:
+                await self.send_message(message.channel, "You don't have any logs to delete.")
+            
+    
+    #makes a fake quote for a user based off a markov model
+    async def c_quote(self, message, params):
+
+        userID = ""
+        param = params.split(" ")[0]
+        if param == "me" or param == "":
+            userID = message.author.id
+        elif "<@" in param:
+            userID = re.sub("[^0-9]", "", param)
+        else: 
+            try:
+                userID = message.server.get_member_named(params.split(" ")[0]).id
+            except:
+                await self.send_message(message.channel, "I couldn't find that user. This is case sensitive, did you enter it right?")
+        username = message.server.get_member(userID).name    
+        path = str(os.getcwd())
+         
+        try:
+            text = ""
+            
+            with open(path + "/logs/" + userID + ".txt", mode="r", encoding="utf-8") as sampleFile:
+                text = sampleFile.read().replace("\n", " ")
+            
+            fakeQuote = markoving.makeASentence(text)
+            print(fakeQuote)
+            
+            await self.send_message(message.channel, "\"" + fakeQuote + "\" - " + username + ", probably")
+        except FileNotFoundError:
+            await self.send_message(message.channel, "There are no logs for " + username + ".")
+    
     async def c_norn(self, message, params):
     
         name1 = ["Crunch", "Olaf", "Beef", "Chunk", "Smoke", "Brick", "Crash", "Thick", "Bold", "Buff", "Drunk", "Punch", "Crud", "Grizzle", "Slab", "Hack", "Big"]
         name2 = ["Mac", "Mc", ""]
-        name3 = ["Butt", "Steak", "Hard", "Rock", "Large", "Huge", "Beef", "Thrust", "Big", "Bigger", "Meat", "Hard", "Fight", "Fizzle", "Run", "Fast", "Drink", "Lots",        "Slam", "Chest", "Groin", "Bone", "Meal", "Thorn", "Body", "Squat"]
+        name3 = ["Butt", "Steak", "Hard", "Rock", "Large", "Huge", "Beef", "Thrust", "Big", "Bigger", "Meat", "Hard", "Fight", "Fizzle", "Run", "Fast", "Drink", "Lots", "Slam", "Chest", "Groin", "Bone", "Meal", "Thorn", "Body", "Squat"]
         
         await self.send_message(message.channel, random.choice(name1) + " " + random.choice(name2) + random.choice(name3) + str.lower(random.choice(name3)))
             
@@ -219,12 +370,36 @@ class AshurBot(discord.Client):
         
     async def c_help(self, message, params):
         text = "Commands:\n```"
-
-        for func in dir(self):
-            if func.startswith('c_') and func != 'c_help':
-                text += func.replace("c_", self.prefix) + "\n"
         
-        text += "``` \nRepo: https://github.com/stokori/ashur-discord"
+        if (params == "") :
+            for func in dir(self):
+                if func.startswith('c_') and func != 'c_help':
+                    text += func.replace("c_", self.prefix) + "\n"
+            
+            text += "``` \nType " + self.prefix + "help followed by the name of the command to get more information. \nRepo: https://github.com/stokori/ashur-discord"
+        
+        else:
+            helpText = { 
+            "clearlogs" : "Clears any stored logs you have. If used by my owner, can remove other people's logs.",
+            "colors" : "Gets a random color palette from colourlovers.com.",
+            "corbin" : "Gives you a random photo of Corbin!",
+            "exit" : "I'm not telling you how to MURDER ME",
+            "gotosleep" : "GO TO BED",
+            "gw2daily" : "Like gw2bot, but shittier.",
+            "hello" : "Hi.",
+            "jisho" : "Looks up an english word, kana, or kanji from jisho.org.",
+            "kinkshame" : "When you see or post some real bad content. If you don't specify, I'm just going to kinkshame you.",
+            "logs" : "Shows the list of users with logs.",
+            "norn" : "Generates a norn name.",
+            "quote" : "Gives you something either you or someone else _probably_ said.",
+            "readlogs" : "Stores the last 1000 messages you said in the current channel. If used by my owner, can read other people's logs.",
+            "restart" : "Have you tried turning it off and on again?"
+            }
+            
+            try:
+                text = helpText[params.strip()]
+            except:
+                text = "That command doesn't exist, doesn't have help text yet, or you made a typo."
         
         await self.send_message(message.channel, text)
         
