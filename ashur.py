@@ -9,6 +9,7 @@ import random
 import markoving
 import re
 
+
 import aiohttp
 from io import BytesIO
 
@@ -35,6 +36,9 @@ class AshurBot(discord.Client):
     ownerName = settings.get('Owner', 'Name')
     prefix = settings.get('Options', 'Prefix')
     commands = []
+    #weeps
+    player = None
+    currentVoiceChannel = None
 
 
     # various commands below that need docstrings...
@@ -44,10 +48,12 @@ class AshurBot(discord.Client):
         print('Logged in successfully.')
         print(self.user.name)
         print(self.user.id)
-        await self.change_presence(game=discord.Game(name='a!help'))
+        #load opus for voice commands
+        #discord.opus.load_opus("opus")
+        await self.change_presence(game = discord.Game(name = self.prefix + "help"))
         
         for func in dir(self):
-            if func.startswith('c_'):
+            if func.startswith("c_"):
                 self.commands.append(func.replace("c_", ""))
         
         print("Loaded commands: " + str(self.commands))
@@ -68,13 +74,21 @@ class AshurBot(discord.Client):
 
     #find who has logs
     async def c_logs(self, message, params):
-        names = "I have logs for these people: ```"
         fileList = [f.replace(".txt","") for f in os.listdir(str(os.getcwd()) + "/logs/") if os.path.isfile(os.path.join(str(os.getcwd()) + "/logs/", f))]
+        names = "\nI have logs for these " + str(len(fileList)) + " person(s):  ``` "
         
-        for i in fileList:
-            names += message.server.get_member(i).name + "\n"
+        if len(fileList) is 0:
+            names += "\n"
+        elif len(fileList) is 1:
+            names += message.server.get_member(fileList[0]).name
+        else:
+            for i, fileName in enumerate(fileList, 1):
+                if i == len(fileList):
+                    names += message.server.get_member(fileName).name
+                else:
+                    names += message.server.get_member(fileName).name + "\n "
             
-        names += "``` Please use `b!clearlogs` if you would like yourself removed."
+        names += "``` \nPlease use `b!clearlogs` if you would like yourself removed."
         
         await self.send_message(message.channel, names)
         
@@ -82,11 +96,11 @@ class AshurBot(discord.Client):
     #read logs for use in other commands
     async def c_readlogs(self, message, params):
             
-        badMessage = ["http","www","a!","b!","p!","<@!","AM]","PM]"]
+        badMessage = ["http","www","a!","b!","p!","<@!","AM]","PM]",":////"]
             
         if (message.author.id == self.ownerID):
         
-            #try:
+            try:
                 if (params == ""):
                     userID = str(message.author.id)
                     username = message.author.name
@@ -117,14 +131,14 @@ class AshurBot(discord.Client):
                 
                 logfile.close()
                 await self.send_message(message.channel, "Okay, I read the last " + str(messageLimit) + " messages in " + message.channel.mention + " from " + username + ".")
-            #except:
-             #             await self.send_message(message.channel, "Something went wrong. Did you enter the params right?")
+            except:
+                await self.send_message(message.channel, "Something went wrong. Did you enter the params right?")
             
         else:
             try:
                 userID = str(message.author.id)
                 username = message.author.name
-                
+                messageLimit = 1000
                 path = str(os.getcwd())
                 
                 logfile = None
@@ -363,10 +377,54 @@ class AshurBot(discord.Client):
             msg += "```" + "\nhttp://jisho.org/search/" + params.split(" ")[0]
             
             await self.send_message(message.channel, msg)
-        
+
+    #WEEEEEEEED
+    async def c_weed(self, message, params):
+        if message.author.voice.voice_channel is None:
+            await self.send_file(message.channel, "WEEEEEED.mp3")
+            
+        else:
+            if self.voice_client_in(message.author.server):
+                await self.voice_client_in(message.author.server).disconnect()
+                
+            self.currentVoiceChannel = await self.join_voice_channel(message.author.voice.voice_channel)
+            self.player = self.currentVoiceChannel.create_ffmpeg_player("WEEEEEED.mp3",after=self.afterAudio)
+            self.player.volume = 0.3
+            self.player.start()
+    
+    #threading sucks
+    def afterAudio(self):
+        coro = self.currentVoiceChannel.disconnect()
+        fut = asyncio.run_coroutine_threadsafe(coro, self.loop)
+        try:
+            fut.result()
+            self.currentVoiceChannel = None
+        except Exception:
+            pass
+    
     # basic commands
     async def c_hello(self, message, params):
         await self.send_message(message.channel, "Hello, " + message.author.name + ".")
+        
+    async def c_version(self, message, params):
+        r = requests.get("https://api.github.com/repos/stokori/ashur-discord/commits/master")
+        commit = r.json()
+        
+        commitSHA = commit["sha"]
+        commitMessage = commit["commit"]["message"]
+        commitURL = commit["html_url"]
+        commitAuthor = commit["author"]["login"]
+        commitAuthorURL = commit["author"]["html_url"]
+        commitDate = commit["commit"]["committer"]["date"].split("T")[0]
+        commitTime = commit["commit"]["committer"]["date"].split("T")[1].replace("Z","")
+        
+        messageToSend = " \n \n`" + commitSHA + "`by " + commitAuthor + " on " + commitDate + " @ " + commitTime + " ``` " + commitMessage + "```<" + commitURL + ">"
+        
+        em = discord.Embed(title="Commit " + commitSHA, description=commitMessage, url=commitURL)
+        em.add_field(name="Date",value=commitDate)
+        em.add_field(name="Time",value=commitTime)
+                
+        await self.send_message(message.channel, embed=em)
         
     async def c_help(self, message, params):
         text = "Commands:\n```"
@@ -393,7 +451,9 @@ class AshurBot(discord.Client):
             "norn" : "Generates a norn name.",
             "quote" : "Gives you something either you or someone else _probably_ said.",
             "readlogs" : "Stores the last 1000 messages you said in the current channel. If used by my owner, can read other people's logs.",
-            "restart" : "Have you tried turning it off and on again?"
+            "restart" : "Have you tried turning it off and on again?",
+            "weed" : "***WEEEEEEEEEEEEEEEEEEEED***",
+            "version" : "Gives you the latest GitHub commit on the master branch."
             }
             
             try:
@@ -417,13 +477,13 @@ class AshurBot(discord.Client):
         else:
             await self.send_message(message.channel, "Sorry, only my owner(" + ownerName + ") can do that. Please @ them if I need to be exited.")
             
-   # async def c_update(self, message, params):
-    #    if (message.author.id == self.ownerID):
-     #       await self.send_message(message.channel, "Updating. Better hope this doesn't crash me or you're gonna have to open up SSH anyways.")
-      #      subprocess.check_call([sys.executable, '-m', 'pip', 'install', '-U','https://github.com/stokori/ashur-discord.git'])
-       #     os.execl(sys.executable, sys.executable, *sys.argv)
-        #else:
-         #   await self.send_message(message.channel, "Sorry, only my owner(" + ownerName + ") can do that. Please @ them if I need to be updated.")
+    async def c_update(self, message, params):
+        if (message.author.id == self.ownerID):
+            await self.send_message(message.channel, "Updating. Better hope this doesn't crash me or you're gonna have to open up SSH anyways.")
+            subprocess.check_call([sys.executable, '-m', 'pip', 'install', '-U','https://github.com/stokori/ashur-discord.git'])
+            os.execl(sys.executable, sys.executable, *sys.argv)
+        else:
+            await self.send_message(message.channel, "Sorry, only my owner(" + ownerName + ") can do that. Please @ them if I need to be updated.")
 
 if __name__ == "__main__":
     ashur = AshurBot()
